@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Local PGP Decryptor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <style>
+    :root {
+      --bg: #090b0f;
+      --bg2: #11161d;
+      --panel: rgba(255,255,255,0.045);
+      --panel2: rgba(255,255,255,0.03);
+      --border: rgba(255,255,255,0.10);
+      --text: #f5f7fa;
+      --muted: rgba(245,247,250,0.68);
+      --soft: rgba(245,247,250,0.84);
+      --shadow: 0 24px 80px rgba(0,0,0,0.42);
+      --focus-ring: 0 0 0 3px rgba(255,255,255,0.12);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --success-bg: rgba(72, 187, 120, 0.12);
+      --success-border: rgba(72, 187, 120, 0.28);
+      --error-bg: rgba(239, 68, 68, 0.12);
+      --error-border: rgba(239, 68, 68, 0.28);
+      --warn-bg: rgba(245, 158, 11, 0.12);
+      --warn-border: rgba(245, 158, 11, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      line-height: 1.65;
+      background:
+        radial-gradient(circle at top, rgba(255,255,255,0.05), transparent 30%),
+        linear-gradient(180deg, var(--bg), var(--bg2) 45%, var(--bg));
+      padding: 32px 18px 56px;
+    }
+
+    .page {
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 24px;
+    }
+
+    .hero-kicker {
+      display: inline-block;
+      margin: 0 0 12px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.035em;
+      max-width: 900px;
+    }
+
+    .subtitle {
+      margin-top: 14px;
+      max-width: 880px;
+      font-size: 1.02rem;
+      color: rgba(245,247,250,0.9);
+    }
+
+    .panel {
+      margin-top: 24px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border-radius: 26px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-body {
+      padding: 28px;
+    }
+
+    .card {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.04rem;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .card p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      color: var(--text);
+      padding: 14px 14px;
+      font: inherit;
+      line-height: 1.35;
+      outline: none;
+      transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(245,247,250,0.42);
+    }
+
+    input:focus,
+    textarea:focus,
+    button:focus-visible {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      box-shadow: var(--focus-ring);
+      outline: none;
+    }
+
+    textarea {
+      min-height: 210px;
+      resize: vertical;
+    }
+
+    .mono {
+      font-family: var(--mono);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      text-decoration: none;
+      background: rgba(255,255,255,0.04);
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
+    .status-box {
+      display: none;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+    }
+
+    .status-box.show {
+      display: block;
+    }
+
+    .status-box.success {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: rgba(245,247,250,0.96);
+    }
+
+    .status-box.error {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: rgba(245,247,250,0.96);
+    }
+
+    .status-box.warn {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: rgba(245,247,250,0.96);
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 860px) {
+      .field-grid,
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 540px) {
+      body { padding: 22px 14px 42px; }
+      .panel-body { padding: 18px 16px; }
+      h1 { line-height: 1.02; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-kicker">Local-only tool</div>
+      <h1>PGP Decryptor</h1>
+      <div class="subtitle">
+        This page is intended to run locally and decrypt armored PGP messages in your browser using your private key and passphrase.
+        It does not upload anything or store your private key.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-body">
+        <div class="card">
+          <h2>How to use this safely</h2>
+          <p>
+            Keep this page local. Keep <span class="mono">openpgp.min.js</span> local. Do not host this publicly.
+            Do not paste your private key into random websites.
+          </p>
+          <p>
+            If double-clicking this HTML does not work, run it via <span class="mono">localhost</span> instead.
+          </p>
+          <div id="environment-status" class="status-box"></div>
+        </div>
+
+        <div class="card">
+          <h2>Load your private key</h2>
+          <p>
+            Paste your armored private key, or upload the private key file you downloaded earlier.
+          </p>
+
+          <div class="field-grid">
+            <div class="field full">
+              <label for="private-key-input">Armored private key</label>
+              <textarea
+                id="private-key-input"
+                class="mono"
+                spellcheck="false"
+                placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="private-key-file">Or upload private key file</label>
+              <input id="private-key-file" type="file" accept=".asc,.pgp,.gpg,.txt" />
+            </div>
+
+            <div class="field">
+              <label for="passphrase-input">Passphrase</label>
+              <input
+                id="passphrase-input"
+                type="password"
+                placeholder="Enter private key passphrase"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Encrypted message</h2>
+          <p>
+            Paste the armored encrypted message you want to decrypt.
+          </p>
+
+          <div class="field">
+            <label for="message-input">Armored ciphertext</label>
+            <textarea
+              id="message-input"
+              class="mono"
+              spellcheck="false"
+              placeholder="-----BEGIN PGP MESSAGE-----"
+            ></textarea>
+          </div>
+
+          <div class="button-row">
+            <button type="button" id="decrypt-button">Decrypt message</button>
+            <button type="button" id="clear-button">Clear all</button>
+          </div>
+
+          <div id="decrypt-status" class="status-box"></div>
+        </div>
+
+        <div class="split">
+          <div class="card">
+            <h2>Decrypted output</h2>
+            <div class="field">
+              <label for="plaintext-output">Plaintext</label>
+              <textarea
+                id="plaintext-output"
+                class="mono"
+                spellcheck="false"
+                readonly
+                placeholder="Decrypted plaintext will appear here."
+              ></textarea>
+            </div>
+
+            <div class="button-row">
+              <button type="button" id="copy-plaintext-button">Copy plaintext</button>
+              <button type="button" id="download-plaintext-button">Download .txt</button>
+            </div>
+
+            <div class="small-note" id="output-copy-status" aria-live="polite"></div>
+          </div>
+
+          <div class="card">
+            <h2>Notes</h2>
+            <p>
+              This version is intentionally narrow:
+            </p>
+            <p>
+              - decrypt armored messages<br />
+              - no signature verification<br />
+              - no storage<br />
+              - no network calls
+            </p>
+            <p>
+              That is the safer default.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./openpgp.min.js"></script>
+  <script>
+    (function () {
+      const envStatus = document.getElementById("environment-status");
+      const privateKeyInput = document.getElementById("private-key-input");
+      const privateKeyFile = document.getElementById("private-key-file");
+      const passphraseInput = document.getElementById("passphrase-input");
+      const messageInput = document.getElementById("message-input");
+      const plaintextOutput = document.getElementById("plaintext-output");
+      const decryptButton = document.getElementById("decrypt-button");
+      const clearButton = document.getElementById("clear-button");
+      const decryptStatus = document.getElementById("decrypt-status");
+      const copyPlaintextButton = document.getElementById("copy-plaintext-button");
+      const downloadPlaintextButton = document.getElementById("download-plaintext-button");
+      const outputCopyStatus = document.getElementById("output-copy-status");
+
+      function showStatus(el, type, message) {
+        el.className = "status-box show " + type;
+        el.textContent = message;
+      }
+
+      function clearStatus(el) {
+        el.className = "status-box";
+        el.textContent = "";
+      }
+
+      function downloadTextFile(filename, text) {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      async function copyText(text) {
+        await navigator.clipboard.writeText(text);
+      }
+
+      function resetCopyStatus() {
+        outputCopyStatus.textContent = "";
+      }
+
+      function checkEnvironment() {
+        if (!window.openpgp) {
+          showStatus(
+            envStatus,
+            "error",
+            "OpenPGP.js did not load. Keep openpgp.min.js in the same folder as this HTML file."
+          );
+          decryptButton.disabled = true;
+          return;
+        }
+
+        if (!window.isSecureContext) {
+          showStatus(
+            envStatus,
+            "warn",
+            "This browser context is not marked secure. If decryption fails here, run this page through localhost instead of file://."
+          );
+        } else {
+          showStatus(
+            envStatus,
+            "success",
+            "OpenPGP.js loaded. Environment looks usable."
+          );
+        }
+      }
+
+      privateKeyFile.addEventListener("change", async function () {
+        const file = privateKeyFile.files && privateKeyFile.files[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          privateKeyInput.value = text.replace(/^\uFEFF/, "").trim();
+          clearStatus(decryptStatus);
+        } catch (error) {
+          showStatus(
+            decryptStatus,
+            "error",
+            "Could not read the private key file."
+          );
+        }
+      });
+
+      clearButton.addEventListener("click", function () {
+        privateKeyInput.value = "";
+        privateKeyFile.value = "";
+        passphraseInput.value = "";
+        messageInput.value = "";
+        plaintextOutput.value = "";
+        clearStatus(decryptStatus);
+        resetCopyStatus();
+      });
+
+      copyPlaintextButton.addEventListener("click", async function () {
+        const value = plaintextOutput.value;
+        if (!value.trim()) {
+          outputCopyStatus.textContent = "Nothing to copy yet.";
+          return;
+        }
+
+        try {
+          await copyText(value);
+          outputCopyStatus.textContent = "Plaintext copied.";
+          window.setTimeout(resetCopyStatus, 1800);
+        } catch (error) {
+          outputCopyStatus.textContent = "Copy failed. Select and copy manually.";
+        }
+      });
+
+      downloadPlaintextButton.addEventListener("click", function () {
+        const value = plaintextOutput.value;
+        if (!value.trim()) {
+          outputCopyStatus.textContent = "Nothing to download yet.";
+          return;
+        }
+
+        downloadTextFile("decrypted-message.txt", value);
+        outputCopyStatus.textContent = "Plaintext downloaded.";
+        window.setTimeout(resetCopyStatus, 1800);
+      });
+
+      decryptButton.addEventListener("click", async function () {
+        clearStatus(decryptStatus);
+        resetCopyStatus();
+        plaintextOutput.value = "";
+
+        const privateKeyArmored = privateKeyInput.value.replace(/^\uFEFF/, "").trim();
+        const passphrase = passphraseInput.value;
+        const messageArmored = messageInput.value.replace(/^\uFEFF/, "").trim();
+
+        if (!privateKeyArmored) {
+          showStatus(decryptStatus, "error", "Paste or upload your private key.");
+          return;
+        }
+
+        if (!privateKeyArmored.includes("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+          showStatus(decryptStatus, "error", "The private key does not look like a valid armored PGP private key.");
+          return;
+        }
+
+        if (!passphrase) {
+          showStatus(decryptStatus, "error", "Enter your private key passphrase.");
+          return;
+        }
+
+        if (!messageArmored) {
+          showStatus(decryptStatus, "error", "Paste the encrypted message.");
+          return;
+        }
+
+        if (!messageArmored.includes("-----BEGIN PGP MESSAGE-----")) {
+          showStatus(decryptStatus, "error", "The encrypted input does not look like an armored PGP message.");
+          return;
+        }
+
+        decryptButton.disabled = true;
+        decryptButton.textContent = "Decrypting…";
+
+        try {
+          const privateKey = await window.openpgp.readPrivateKey({
+            armoredKey: privateKeyArmored
+          });
+
+          const decryptedKey = await window.openpgp.decryptKey({
+            privateKey,
+            passphrase
+          });
+
+          const message = await window.openpgp.readMessage({
+            armoredMessage: messageArmored
+          });
+
+          const { data } = await window.openpgp.decrypt({
+            message,
+            decryptionKeys: decryptedKey,
+            format: "utf8"
+          });
+
+          plaintextOutput.value = data;
+          showStatus(decryptStatus, "success", "Message decrypted successfully.");
+        } catch (error) {
+          showStatus(
+            decryptStatus,
+            "error",
+            error && error.message ? error.message : "Decryption failed."
+          );
+        } finally {
+          decryptButton.disabled = false;
+          decryptButton.textContent = "Decrypt message";
+        }
+      });
+
+      checkEnvironment();
+    })();
+  </script>
+</body>
+</html>
