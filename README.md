@@ -1,1 +1,1 @@
-Designed for personal use as a local only PGP decryption. Can be tweaked to be updated if required. Recommended to run with internet connection off or blocked.
+The html file was designed for personal use as a local only PGP decryption. Both files are meant to be in a folder together. Can be tweaked to be updated if required. Recommended to run with internet connection off or blocked. The PGP file was acquired from https://openpgpjs.org/. 
